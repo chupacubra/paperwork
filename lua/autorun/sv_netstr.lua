@@ -1,0 +1,18 @@
+if SERVER then
+    util.AddNetworkString("pw_openpaper")
+    util.AddNetworkString("pw_updatetext")
+    util.AddNetworkString("pw_updatepaper")
+    util.AddNetworkString("pw_updatepaper2")
+    util.AddNetworkString("pw_updateclip")
+    util.AddNetworkString("pw_openclipboard")
+    util.AddNetworkString("pw_openprinter")
+    util.AddNetworkString("pw_sendtitledocs")
+    util.AddNetworkString("pw_checkinput")
+    util.AddNetworkString("pw_cbrempaper")
+    util.AddNetworkString("pw_printdoc")
+    util.AddNetworkString("pw_openfcab")
+    util.AddNetworkString("pw_getfcab")
+    util.AddNetworkString("pw_printscandoc")
+    util.AddNetworkString("pw_cbpapcount")
+    util.AddNetworkString("pw_renamep")
+end

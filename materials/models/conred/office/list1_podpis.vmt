@@ -1,0 +1,8 @@
+"VertexlitGeneric"
+{
+	"$basetexture" "models/conred/office/list1_podpis"
+	"$bumpmap" "models/conred/office/list_bump"
+	$color "{255 255 255}" //$color2	
+	$blendtintbybasealpha 1
+ 	$blendtintcoloroverbase 0
+}
