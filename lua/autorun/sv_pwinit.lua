@@ -47,3 +47,13 @@ function MarkInp(text,ply)
     end
     return text
 end
+
+local dist = 100
+dist = dist * dist
+
+function PW_CanUse(ent, ply)
+    if ent:GetPos():DistToSqr(ply:GetPos()) > dist then return false end -- F*ck motherhackers
+    if CPPI and not ent:CPPICanUse(ply) then return false end -- Prop protect support
+
+    return true
+end

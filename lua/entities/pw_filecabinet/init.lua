@@ -3,25 +3,6 @@ AddCSLuaFile("shared.lua")
 
 include("shared.lua")
 
-function MarkInp(text,ply)
-    for k,v in pairs(BLOCK_TAG) do
-        text = string.Replace(text,v,"")
-    end
-    for k,v in pairs(coolchar) do
-        if k == "write" then
-            local fstr = "%["..k.."%]"
-            while string.find(text,fstr) do
-                text = string.gsub(text, fstr, v(),1)
-            end
-        else
-            local fstr = "["..k.."]"
-            if string.find(text,fstr) then
-                text = string.Replace(text,fstr,v(paper,ply))
-            end
-        end
-    end
-    return text
-end
 
 function ENT:Initialize()
     self:SetModel("models/props_lab/filecabinet02.mdl")
@@ -53,7 +34,10 @@ end
 
 net.Receive("pw_getfcab",function(len,ply)
     local cab = net.ReadEntity()
+    if not PW_CanUse(cab, ply) then return end
+
     local key = net.ReadString()
+    if not cab.docs[key] then return end
 
     local paper = ents.Create( "pw_paper" )
     paper:SetPos( cab:GetPos() + Vector(0,0,25) )

@@ -23,7 +23,7 @@ function SWEP:PrimaryAttack()
 	
     trace = util.TraceLine(trace)
 
-    if tostring(trace.Entity) == "[NULL Entity]" then
+    if not trace.Entity:IsValid() then
         return
     end
     
