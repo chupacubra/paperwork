@@ -3,7 +3,6 @@ AddCSLuaFile("shared.lua")
 
 include("shared.lua")
 
-
 function ENT:Initialize()
     self:SetModel("models/props_lab/filecabinet02.mdl")
     self:PhysicsInit( SOLID_VPHYSICS )
@@ -42,7 +41,7 @@ net.Receive("pw_getfcab",function(len,ply)
     local paper = ents.Create( "pw_paper" )
     paper:SetPos( cab:GetPos() + Vector(0,0,25) )
     paper:Spawn()
-    paper:SetData(cab.docs[key]["text"],cab.docs[key]["name"])
+    paper:SetData(cab.docs[key]["text"],cab.docs[key]["name"],cab.docs[key]["stamps"],cab.docs[key]["stampPos"], true)
 
     cab.docs[key] = nil 
 end)

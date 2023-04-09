@@ -5,14 +5,71 @@ include("shared.lua")
 
 function SWEP:SetupDataTables()
     self:NetworkVar("Int",0,"PaperCount")
+    self:NetworkVar("Bool",0,"Attaching")
 end
 
 function SWEP:Initialize()
     self.AllPapers = {}
     self:SetHoldType( "slam" )
+    self.attaching = false
+
+end
+
+
+function SWEP:AttachingToWall()
+    local trace = {}
+
+	trace.start = self.Owner:GetShootPos()
+	trace.endpos = trace.start + (self.Owner:GetAimVector() * 150)
+	trace.filter = function(ent)
+        return !ent:IsPlayer()
+	end
+	
+    trace = util.TraceLine(trace)
+    if trace.Entity == Entity(0) then
+
+        net.Receive("pw_cbattachpaper",function()
+            local cb  = net.ReadEntity()
+            local num = net.ReadInt(8)
+
+            if cb == self then
+
+                local pos = trace.HitPos
+                local ang = trace.HitNormal:AngleEx(Vector(0,0,0))
+
+                local doc = {
+                    text = self.AllPapers[num].text,
+                    name = self.AllPapers[num].name,
+                    stamps = self.AllPapers[num].stamps,
+                    stampPos = self.AllPapers[num].stampPos
+                }
+
+                table.remove(self.AllPapers, num)
+                
+                local papr = ents.Create( "pw_paper" )
+                papr:SetPos( pos )
+                papr:SetAngles(ang)
+                papr:Spawn()
+                gamemode.Call("OnPhysgunFreeze", self, papr:GetPhysicsObject(), papr, self.Owner)
+                papr:SetData(doc.text, doc.name, doc.stamps, doc.stampPos, true )
+
+                self.attaching = false
+
+                self:SetPaperCount(#self.AllPapers)
+                self:SendCountPaper()
+            end
+        end)
+    end
 end
 
 function SWEP:PrimaryAttack()
+    if ( game.SinglePlayer() ) then self:CallOnClient( "PrimaryAttack" ) end
+
+    if self.attaching then
+        self:AttachingToWall()
+        return
+    end
+
     local trace = {}
 
 	trace.start = self.Owner:GetShootPos()
@@ -23,14 +80,16 @@ function SWEP:PrimaryAttack()
 	
     trace = util.TraceLine(trace)
 
-    if not trace.Entity:IsValid() then
+    if tostring(trace.Entity) == "[NULL Entity]" then
         return
     end
     
     if trace.Entity:GetClass() == "pw_paper" then
         local doc = {
             text = trace.Entity.data,
-            name = trace.Entity.name
+            name = trace.Entity.name,
+            stamps = trace.Entity.stamps,
+            stampPos = trace.Entity.stampPos,
         }
         trace.Entity:Remove()
         self:AddPaper(doc)
@@ -63,16 +122,19 @@ function SWEP:RemovePaper(num)
     local pos = trace.HitPos
     local ent = trace.Entity
 
+    local doc = {
+        text = paper.text,
+        name = paper.name,
+        stamps = paper.stamps,
+        stampPos = paper.stampPos
+    }
+
     if ent == Entity(-1) then
         local papr = ents.Create( "pw_paper" )
         papr:SetPos( pos )
         papr:Spawn()
-        papr:SetData(paper["text"],paper["name"])
+        papr:SetData(doc.text, doc.name, doc.stamps, doc.stampPos, true )
     else
-        local doc = {
-            text = paper["text"],
-            name = paper["name"],
-        }
         if ent:GetClass() == "pw_filecabinet" then
             ent:AddPaper(doc)     
         elseif ent:GetClass() == "pw_printer" then
@@ -80,7 +142,7 @@ function SWEP:RemovePaper(num)
                 local papr = ents.Create( "pw_paper" )
                 papr:SetPos( pos )
                 papr:Spawn()
-                papr:SetData(paper["text"],paper["name"])
+                papr:SetData(doc.text, doc.name, doc.stamps, doc.stampPos, true)
             else
                 ent.scandoc[1] = doc
             end
@@ -88,16 +150,23 @@ function SWEP:RemovePaper(num)
             local papr = ents.Create( "pw_paper" )
             papr:SetPos( pos )
             papr:Spawn()
-            papr:SetData(paper["text"],paper["name"])
+            papr:SetData(doc.text, doc.name, doc.stamps, doc.stampPos, true)
         end
     end
     self:SendCountPaper()
 end
 
 function SWEP:SecondaryAttack()
+    if ( game.SinglePlayer() ) then self:CallOnClient( "SecondaryAttack" ) end
+
+    if self.attaching then
+        self.attaching = false
+        return
+    end
+
     net.Start("pw_openclipboard")
-        net.WriteEntity(self)
-        net.WriteTable(self.AllPapers)
+    net.WriteEntity(self)
+    net.WriteTable(self.AllPapers)
     net.Send(self.Owner)
 end
 
@@ -108,6 +177,7 @@ function SWEP:SendCountPaper()
     else
         int = #self.AllPapers
     end
+
     net.Start("pw_cbpapcount")
     net.WriteEntity(self)
     net.WriteInt(int,3)
@@ -149,4 +219,9 @@ net.Receive("pw_cbrempaper", function()
     local cb = net.ReadEntity()
     local num = net.ReadInt(8)
     cb:RemovePaper(num)
+end)
+
+net.Receive("pw_cbattaching", function()
+    local cb = net.ReadEntity()
+    cb.attaching = true
 end)

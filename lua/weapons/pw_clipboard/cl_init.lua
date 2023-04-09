@@ -19,18 +19,19 @@ end)
 
 function SWEP:SetupDataTables()
     self:NetworkVar("Int",0,"PaperCount")
+    self:NetworkVar("Bool",0,"Attaching")
 end
 
 function SWEP:GetViewModelPosition( pos , ang)
 	pos,ang = LocalToWorld(Vector(20,-10,-10),Angle(0,180,0),pos,ang)
-	
+	self:SetBodygroup(1,3)
 	return pos, ang
 end
 
-function SWEP:PostDrawViewModel( model, swep,ply )
-    if model:GetBodygroup( 1 ) != self.VData.p_count then
-        model:SetBodygroup( 1, self.VData.p_count)
-        model:SetSkin(1)
+function SWEP:PreDrawViewModel( vm, weapon, ply )
+    if vm:GetBodygroup( 1 ) != self.VData.p_count then
+        vm:SetBodygroup( 1, self.VData.p_count)
+        vm:SetSkin(1)
     end
 end
 
@@ -51,7 +52,7 @@ net.Receive( "pw_updateclip", function()
         if AllPapers[num] then
             AllPapers[num]["text"] = text
             if HTML and activelist == num then
-                HTML:SetHTML(STYLE..markdown([[]]..text..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+                HTML:SetHTML(STYLE..markdown([[]]..text..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
             end
         end
     end
@@ -62,6 +63,83 @@ function SWEP:Initialize()
     self.VData = {
         p_count = 0 -- 0 = no paper, 1 = 1 paper, 2 = 2 paper, 3 = >= 3 (lot)
     }
+    self.cl_attaching = false
+end
+
+function SWEP:AttachPoint()
+    self.cl_attaching = true
+    local x = Vector( 5, 5, 5 )
+
+    hook.Add( "PostDrawTranslucentRenderables", "ClipboardHolo", function()
+        if self.cl_attaching == false then
+            hook.Remove("PostDrawTranslucentRenderables", "ClipboardHolo")
+            return
+        end
+
+        local trace = {}
+
+        trace.start = self.Owner:GetShootPos()
+        trace.endpos = trace.start + (self.Owner:GetAimVector() * 150)
+        trace.filter = function(ent)
+            return !ent:IsPlayer()
+        end
+        
+        trace = util.TraceLine(trace)
+        local pos = trace.HitPos
+
+        local color_box = Color(255,70,70,155)
+
+        if trace.Entity == Entity(0) then
+            color_box = Color(70,255,70,155)
+        end
+
+        render.SetColorMaterial()
+    
+        cam.IgnoreZ( true )
+        render.DrawBox( pos, angle_zero, x, -x, color_box )
+        cam.IgnoreZ( false )
+    end )
+end
+
+function SWEP:DrawHUD()
+    if self.cl_attaching then
+        local x, y = (ScrW() / 2.0) - 128, (ScrH() / 3.0) * 2
+        surface.SetFont( "DermaLarge" )
+        surface.SetTextColor( 255, 255, 255 )
+        surface.SetTextPos( x, y ) 
+        surface.DrawText( "To STOP press RMB" )
+    end
+end
+
+function SWEP:PrimaryAttack()
+    if self.cl_attaching then
+        local trace = {}
+
+        trace.start = self.Owner:GetShootPos()
+        trace.endpos = trace.start + (self.Owner:GetAimVector() * 150)
+        trace.filter = function(ent)
+            return !ent:IsPlayer()
+        end
+        
+        trace = util.TraceLine(trace)
+        local pos = trace.HitPos
+
+        if trace.Entity == Entity(0) then 
+            self.cl_attaching = false
+            net.Start("pw_cbattachpaper")
+            net.WriteEntity(self)
+            net.WriteInt(activelist,8)
+            net.SendToServer()
+        end
+
+    end
+end
+
+function SWEP:SecondaryAttack()
+    if self.cl_attaching then
+        self.cl_attaching = false
+        hook.Remove("PostDrawTranslucentRenderables", "ClipboardHolo")
+    end
 end
 
 function SWEP:DrawWorldModel()
@@ -91,11 +169,21 @@ function SWEP:DrawWorldModel()
     WorldModel:DrawModel()
 end
 
+function GetPaperStamp()
+    if AllPapers[activelist].stamps then
+        local allpstams = HTMLStamp(AllPapers[activelist].stamps)
+        return allpstams
+    end
+    return ""
+end
+
 net.Receive("pw_openclipboard", function()
     clipboard = net.ReadEntity()
     AllPapers = net.ReadTable()
+
     if #AllPapers == 0 then return end  
     activelist = #AllPapers
+
 
     local Frame = vgui.Create( "DFrame" ) 
     Frame:SetSize( PW_size_frame.x, PW_size_frame.y + 60) 
@@ -109,6 +197,20 @@ net.Receive("pw_openclipboard", function()
     Frame:Center()
     Frame:MakePopup()
 
+
+    local AttachB = vgui.Create( "DButton", Frame )
+    AttachB:SetText( "Attach to wall" )
+    AttachB:SetPos( PW_size_frame.x - 180, 3 )
+    AttachB:SetSize( 75, 20 )
+    AttachB.DoClick = function()
+        Frame:Close()
+        net.Start("pw_cbattaching")
+        net.WriteEntity(clipboard)
+        net.SendToServer()
+        clipboard:AttachPoint()
+    end
+
+
     local BNEXT = vgui.Create( "DButton", Frame )
     BNEXT.nump = activelist
     BNEXT:SetText( "->" )
@@ -117,7 +219,7 @@ net.Receive("pw_openclipboard", function()
     BNEXT.DoClick = function()
         if activelist < #AllPapers then
             activelist = activelist + 1
-            HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+            HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
             Frame:SetTitle( "Clipboard ("..#AllPapers..") - "..activelist.." - "..AllPapers[activelist]["name"])
         end
     end
@@ -144,7 +246,7 @@ net.Receive("pw_openclipboard", function()
                 net.SendToServer()
             
                 if #AllPapers > 0 then
-                    HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+                    HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
                     Frame:SetTitle( "Clipboard ("..#AllPapers..") - "..activelist.." - "..AllPapers[activelist]["name"])
                 else
                     Frame:Close()
@@ -175,7 +277,7 @@ net.Receive("pw_openclipboard", function()
             table.remove(AllPapers, activelist)
         end
         if #AllPapers > 0 then
-            HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+            HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
             Frame:SetTitle( "Clipboard ("..#AllPapers..") - "..activelist.." - "..AllPapers[activelist]["name"])
         else
             Frame:Close()
@@ -192,7 +294,7 @@ net.Receive("pw_openclipboard", function()
             return
         end
         activelist = activelist - 1
-        HTML:SetHTML(STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+        HTML:SetHTML(STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
         Frame:SetTitle( "Clipboard ("..#AllPapers..") - "..activelist.." - "..AllPapers[activelist]["name"])
     end
 
@@ -229,7 +331,7 @@ net.Receive("pw_openclipboard", function()
 
             INPFrame:Close()
             if HTML then
-                HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+                HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
             end
         end
     end)
@@ -245,9 +347,10 @@ net.Receive("pw_openclipboard", function()
         BREM:SetPos( PW_size_frame.x - 172 , (PW_size_frame.y + 60) - 45 )
         BBACK:SetPos( PW_size_frame.x - 340, (PW_size_frame.y + 60) - 45 )
         BREN:SetPos( PW_size_frame.x - 258 , (PW_size_frame.y + 60) - 45 )
+        AttachB:SetPos( PW_size_frame.x - 180, 3 )
     end
 
-    HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+    HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
     HTML:SetSize( PW_size_frame.x - 2, (PW_size_frame.y + 60) - 90 )
 end)
 
@@ -264,7 +367,7 @@ hook.Add( "PW_sizefontchanged" , "UpdateClip" , function()
     if HTML == nil then return end
 
     if HTML:IsValid() and AllPapers != nil then
-        HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a>]] )
+        HTML:SetHTML( STYLE..markdown([[]]..AllPapers[activelist]["text"]..[[]])..[[<a href="javascript:paper.luaprint(-1)">Write</a><br><hr>]]..GetPaperStamp() )
     end
 
 end)
