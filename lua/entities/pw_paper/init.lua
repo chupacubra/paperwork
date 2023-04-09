@@ -41,6 +41,8 @@ end
 
 net.Receive("pw_updatetext", function(len,ply)
     local paper = net.ReadEntity()
+    if not PW_CanUse(paper, ply) then return end
+
     local int   = net.ReadString()
     local text  = net.ReadString()
     if string.len(paper.data) == 0 and (text != "" or text != nil) then
