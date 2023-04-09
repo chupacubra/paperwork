@@ -6,16 +6,6 @@ AddCSLuaFile("cl_pw_config.lua")
 include("sv_netstr.lua")
 include("sv_listdocs.lua")
 
-
-sound.Add( {
-	name = "paperwork.printer",
-	channel = CHAN_STATIC,
-	volume = 1.0,
-	level = 80,
-	pitch = {95, 110},
-	sound = "printer.wav"
-} )
- 
 function TableTitleDocs()
     local tbl = {}
     for k,v in pairs(PRINTFORM) do
