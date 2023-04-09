@@ -1,4 +1,4 @@
-if SERVER then
+if SERVER then --bruh!
     util.AddNetworkString("pw_openpaper")
     util.AddNetworkString("pw_updatetext")
     util.AddNetworkString("pw_updatepaper")
@@ -15,4 +15,8 @@ if SERVER then
     util.AddNetworkString("pw_printscandoc")
     util.AddNetworkString("pw_cbpapcount")
     util.AddNetworkString("pw_renamep")
+    util.AddNetworkString("pw_updatestamp")
+    util.AddNetworkString("pw_decalstamp")
+    util.AddNetworkString("pw_cbattaching")
+    util.AddNetworkString("pw_cbattachpaper")
 end

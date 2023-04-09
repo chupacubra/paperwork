@@ -1,0 +1,16 @@
+"VertexLitGeneric"
+{
+	$basetexture "models/soermodels_officesupplies/stamp_wood_square_diffuse2"
+	$bumpmap "models/soermodels_officesupplies/stamp_wood_square_normal"
+	$normalmapalphaenvmapmask "1"
+	$blendtintbybasealpha "1"
+	$ambientocclusion "1"
+	$ambientoccltexture "models/soermodels_officesupplies/stamp_wood_square_ambientocclusion"
+	$envmap "env_cubemap"
+	$color2 "[1 1 1]"
+	$detail "detail\wood_detail_01"
+	$detailscale "8"
+	$detailblendfactor "0.8"
+	$detailblendmode "0"
+	%keywords "soer4769, office, supplies, models, custom"
+}

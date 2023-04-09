@@ -2,7 +2,6 @@ include("sh_pwshared.lua")
 include("cl_markdown.lua")
 include("cl_pw_config.lua")
 
-util.PrecacheSound( "printer.wav" )
 
 if CLIENT then
     pw_sizefont = CreateClientConVar( "pw_sizefont", 20, true,false, "The size of font in papers", 5, 50 )
@@ -27,4 +26,14 @@ if CLIENT then
         ]]
         hook.Run( "PW_sizefontchanged" )
     end)
+
+    function HTMLStamp(tbl)
+        local str = ""
+    
+        for k,v in pairs(tbl) do
+            str = str .. "<img src='"..STAMPS_PNG[v] .."'>"
+        end
+    
+        return str
+    end
 end

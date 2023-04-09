@@ -26,7 +26,7 @@ function ENT:RemoveScanDoc(ply)
     paper:SetPos( self:GetPos() + Vector(0,0,40) )
     paper:Spawn()
     paper:SetCreator(ply)
-    paper:SetData(self.scandoc[1]["text"],self.scandoc[1]["name"])
+    paper:SetData(self.scandoc[1]["text"], self.scandoc[1]["name"], self.scandoc[1]["stamps"], self.scandoc[1]["stampPos"], true)
 
     self.scandoc = {}
 end
@@ -54,7 +54,7 @@ function ENT:PrintDoc(doc,scan,ply)
     paper:SetCreator(ply) -- support for prop protection 
     if scan then
         if self.scandoc[1] then
-            paper:SetData(self.scandoc[1]["text"],self.scandoc[1]["name"])
+            paper:SetData(self.scandoc[1]["text"], self.scandoc[1]["name"], self.scandoc[1]["stamps"], self.scandoc[1]["stampPos"], true)
         end
     else
         if PRINTFORM[doc] then
@@ -62,7 +62,14 @@ function ENT:PrintDoc(doc,scan,ply)
         end
     end
 
-    EmitSound( Sound( "printer.wav" ), self:GetPos(), 1, CHAN_AUTO, 1, 75, 0, 100 + (math.random(-30, 30) ) )
+    self.sound = CreateSound(self, Sound("ambient/levels/labs/equipment_printer_loop1.wav"))
+    self.sound:SetSoundLevel(75)
+    self.sound:PlayEx(1, 100)
+    
+    timer.Simple(2, function()
+        self.sound:Stop()
+    end)
+
 end
 
 net.Receive("pw_printdoc",function(len,ply)
@@ -86,3 +93,4 @@ net.Receive("pw_printscandoc", function(len,ply)
         printer:RemoveScanDoc(ply)
     end
 end)
+

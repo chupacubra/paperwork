@@ -3,11 +3,12 @@ SWEP.Contact			= ""
 SWEP.Purpose			= ""
 SWEP.Instructions		= ""
 
-SWEP.Spawnable			= true
+SWEP.Spawnable			= false
 SWEP.AdminSpawnable		= false
- 
-SWEP.ViewModel			= "models/conred/office/clipboard.mdl"
-SWEP.WorldModel		    = "models/conred/office/clipboard.mdl"
+SWEP.Category           = "PaperWork"
+
+SWEP.ViewModel			= "models/soermodels_officesupplies/stamp_wood_square.mdl"
+SWEP.WorldModel		    = "models/soermodels_officesupplies/stamp_wood_square.mdl"
 
 SWEP.HoldType 			= "slam"
 
@@ -20,5 +21,3 @@ SWEP.Secondary.ClipSize	= -1
 SWEP.Secondary.DefaultClip	= -1
 SWEP.Secondary.Automatic	= false
 SWEP.Secondary.Ammo		= "none"
-
-SWEP.Category           = "PaperWork"
